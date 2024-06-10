@@ -1,23 +1,31 @@
-const express = require('express');
-const axios = require('axios');
+const express = require("express");
+const axios = require("axios");
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 5000;
 
-app.get('/fact', async (req, res) => {
-    try {
-        const response = await axios.get('https://uselessfacts.jsph.pl/random.json?language=en');
-        const factData = response.data;
-        res.json({
-            fact: factData.text,
-            source: factData.source
-        });
-    } catch (error) {
-        console.error('Error fetching fact data:', error);
-        res.status(500).send('Error fetching fact data');
+app.get('/musicinfo', async (req, res) => {
+  const query = req.query.term || '';
+
+  if (!query) {
+    return res.status(400).json({ error: 'Term parameter is required' });
+  }
+
+  try {
+    const response = await axios.get(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&limit=1&entity=song`);
+    if (response.data.resultCount === 0) {
+      return res.status(404).json({ error: 'No song found' });
     }
+
+    return res.json(response.data.results[0]);
+  } catch (err) {
+    const errorMessage = err.response?.data?.error?.message || err.message || 'Unknown error occurred';
+    return res.status(500).json({
+      error: 'An error occurred: ' + errorMessage
+    });
+  }
 });
 
 app.listen(port, () => {
-    console.log(`Fact API server is running at http://localhost:${port}`);
+  console.log(`Server is running on port ${port}`);
 });
